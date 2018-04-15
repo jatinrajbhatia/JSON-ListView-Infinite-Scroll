@@ -3,101 +3,69 @@ package com.example.jrb.jsonlistview.m_JSON;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.AsyncTask;
-import android.widget.ListView;
-import android.widget.Toast;
+import android.text.TextUtils;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
+import com.example.jrb.jsonlistview.MainActivity;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
+import java.lang.ref.WeakReference;
 
 
-public class JSONDownloader extends AsyncTask<Void,Void,String> {
+public class JSONDownloader extends AsyncTask<Void, Void, UserData> {
 
-    Context c;
-    String jsonURL;
-    ListView lv;
+    private WeakReference<Context> contextRef;
+    private String jsonURL;
+    private MainActivity.OnDataLoaded onDataLoaded;
 
-    ProgressDialog pd;
+    private ProgressDialog pd;
 
-    public JSONDownloader(Context c, String jsonURL, ListView lv) {
-        this.c = c;
+    public JSONDownloader(Context context, String jsonURL, MainActivity.OnDataLoaded onDataLoaded) {
+        contextRef = new WeakReference<>(context);
         this.jsonURL = jsonURL;
-        this.lv = lv;
+        this.onDataLoaded = onDataLoaded;
     }
 
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-        pd=new ProgressDialog(c);
+        pd=new ProgressDialog(contextRef.get());
         pd.setTitle("Download JSON");
         pd.setMessage("Downloading...Please wait");
         pd.show();
     }
 
     @Override
-    protected String doInBackground(Void... voids) {
-        return this.download();
+    protected UserData doInBackground(Void... voids) {
+        String response = download();
+        return parse(response);
     }
 
     @Override
-    protected void onPostExecute(String jsonData) {
-        super.onPostExecute(jsonData);
-
-        pd.dismiss();
-        if(jsonData.startsWith("Error"))
-        {
-            Toast.makeText(c, jsonData, Toast.LENGTH_SHORT).show();
-        }else {
-            //PARSE
-            new JSONParser(c,jsonData, lv).execute();
-
+    protected void onPostExecute(UserData userData) {
+        if (TextUtils.isEmpty(userData.getMessage())) {
+            onDataLoaded.success(userData);
+        } else {
+            onDataLoaded.error(userData.getMessage());
         }
-
+        pd.dismiss();
     }
-    private String download()
-    {
-        Object connection=Connector.connect(jsonURL);
-        if(connection.toString().startsWith("Error"))
-        {
+
+    private String download() {
+        Object connection = Connector.connect(jsonURL);
+        if (connection.toString().startsWith("Error")) {
             return connection.toString();
         }
 
-        try
-        {
-            //ESTABLISH CONNECTION
-            HttpURLConnection con= (HttpURLConnection) connection;
-            if(con.getResponseCode()==con.HTTP_OK)
-            {
-                //GET INPUT FROM STREAM
-                InputStream is=new BufferedInputStream(con.getInputStream());
-                BufferedReader br=new BufferedReader(new InputStreamReader(is));
-
-                String line;
-                StringBuffer jsonData=new StringBuffer();
-
-                //READ
-                while ((line=br.readLine()) != null)
-                {
-                    jsonData.append(line+"\n");
-                }
-
-                //CLOSE RESOURCES
-                br.close();
-                is.close();
-
-                //RETURN JSON
-                return jsonData.toString();
-
-            }else
-            {
-                return "Error "+con.getResponseMessage();
-            }
+        try {
+            return Connector.getData(connection);
         } catch (IOException e) {
             e.printStackTrace();
-            return "Error "+e.getMessage();
+            return "Error " + e.getMessage();
         }
+    }
+
+    private UserData parse(String jsonData) {
+        UserParser parser = new UserParser();
+        return parser.parse(jsonData);
     }
 }

@@ -4,21 +4,16 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.view.View;
-import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
-
-import com.example.jrb.jsonlistview.R;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-
-import static java.sql.Types.NULL;
 
 
 public class JSONParser extends AsyncTask<Void,Void,Boolean> {
@@ -84,7 +79,7 @@ public class JSONParser extends AsyncTask<Void,Void,Boolean> {
             JSONArray ja=new JSONArray(jsonData);
             JSONObject jo;
 
-            users.clear();
+//            users.clear();
             for (int i=0;i<ja.length();i++)
             {
                 jo=ja.getJSONObject(i);
